@@ -4,7 +4,7 @@ const envSchema = z.object({
   APP_NAME: z.string().default("Friends Media App"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
-  AUTH_URL: z.string().url("AUTH_URL must be a valid URL"),
+  AUTH_URL: z.string().url("AUTH_URL must be a valid URL").optional(),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DIRECT_URL: z.string().min(1, "DIRECT_URL is required"),
   GOOGLE_DRIVE_CLIENT_ID: z.string().default(""),
