@@ -27,8 +27,8 @@ export default async function UploadPage() {
   const categories = parseMediaCategoriesValue(categoryConfig?.value);
 
   return (
-    <main className="page-shell px-6 py-8">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <main className="page-shell px-4 py-5 sm:px-6 sm:py-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:gap-8">
         <div className="animate-fade-in-up">
           <UserNav
             userName={user.name || user.email || "Friends Media Member"}
@@ -38,7 +38,7 @@ export default async function UploadPage() {
         </div>
         <div className="animate-fade-in-up delay-100 relative">
           <div className="absolute inset-0 bg-gradient-to-b from-[var(--forest)] to-transparent opacity-5 blur-[100px] pointer-events-none rounded-full" />
-          <div className="relative z-10 glass-card rounded-[32px] p-6 sm:p-10 shadow-2xl">
+          <div className="relative z-10 glass-card rounded-[32px] p-3 sm:p-6 md:p-10 shadow-2xl">
             <UploadForm group={{ id: sharedMembership.groupId, name: sharedMembership.group.name }} categories={categories} />
           </div>
         </div>
@@ -46,4 +46,3 @@ export default async function UploadPage() {
     </main>
   );
 }
-

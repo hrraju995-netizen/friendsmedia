@@ -9,9 +9,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isDevelopment = process.env.NODE_ENV !== "production";
+
   useEffect(() => {
-    // Log the error to the console for debugging
-    console.error("Vercel Server Component Error:", error);
+    console.error("Friends Media global error:", error);
   }, [error]);
 
   return (
@@ -19,11 +20,16 @@ export default function GlobalError({
       <div className="glass-card max-w-md rounded-[32px] p-8 shadow-xl">
         <h2 className="font-serif text-3xl font-semibold text-red-600">Server Error</h2>
         <p className="mt-4 text-sm text-[var(--muted)]">
-          An unexpected error occurred while loading this page. This is usually caused by a database timeout or a missing environment API token on Vercel. 
+          Something went wrong while opening this screen or finishing your request. Please try again. If this happened during an upload,
+          the selected file may still be too large for the current server limit.
         </p>
-        <div className="mt-4 p-4 rounded-xl bg-white/50 border border-[var(--border)] text-left overflow-x-auto">
-             <p className="text-xs text-black/60 font-mono break-words">{error.message || "No inner error details provided by Next.js in production."}</p>
-        </div>
+        {isDevelopment ? (
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-white/50 p-4 text-left overflow-x-auto">
+            <p className="text-xs font-mono text-black/60 break-words">
+              {error.message || "No inner error details provided by Next.js in development."}
+            </p>
+          </div>
+        ) : null}
         <button
           onClick={() => reset()}
           className="mt-6 rounded-full bg-[var(--forest)] px-8 py-3 font-medium text-white transition hover:bg-teal-800"

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Avatar } from "@/components/ui/avatar";
+import { getDefaultRequestError, optimizeFilesForUpload, readApiPayload } from "@/lib/client-upload";
 
 type ProfileSettingsFormProps = {
   currentName: string;
@@ -14,6 +15,7 @@ type ProfileSettingsFormProps = {
 export function ProfileSettingsForm({ currentName, currentAvatar, email }: ProfileSettingsFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState<string | null>(currentAvatar);
   const [pending, startTransition] = useTransition();
@@ -24,25 +26,53 @@ export function ProfileSettingsForm({ currentName, currentAvatar, email }: Profi
       onSubmit={(event) => {
         event.preventDefault();
         setError("");
+        setInfo("");
         setMessage("");
 
         const form = event.currentTarget;
         const formData = new FormData(form);
 
         startTransition(async () => {
-          const response = await fetch("/api/profile", {
-            method: "PATCH",
-            body: formData,
-          });
+          try {
+            const requestFormData = new FormData();
+            requestFormData.append("name", String(formData.get("name") || ""));
+            requestFormData.append("currentPassword", String(formData.get("currentPassword") || ""));
+            requestFormData.append("newPassword", String(formData.get("newPassword") || ""));
 
-          const payload = (await response.json()) as { error?: string; message?: string };
-          if (!response.ok) {
-            setError(payload.error || "Could not save your profile.");
-            return;
+            const image = formData.get("image");
+            if (image instanceof File && image.size > 0) {
+              const prepared = await optimizeFilesForUpload([image]);
+
+              if (prepared.oversizedImagesRemaining > 0) {
+                setError("This photo is still too large for mobile upload. Please choose a smaller image.");
+                return;
+              }
+
+              requestFormData.append("image", prepared.files[0], prepared.files[0].name);
+
+              if (prepared.optimizedImageCount > 0) {
+                setInfo("Your profile photo was prepared for mobile upload before sending.");
+              }
+            }
+
+            const response = await fetch("/api/profile", {
+              method: "PATCH",
+              body: requestFormData,
+            });
+
+            const payload = await readApiPayload(response);
+            if (!response.ok) {
+              setError(
+                String(payload.error || getDefaultRequestError(response.status, "Could not save your profile.")),
+              );
+              return;
+            }
+
+            setMessage(typeof payload.message === "string" ? payload.message : "Profile updated.");
+            router.refresh();
+          } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : "Could not save your profile.");
           }
-
-          setMessage(payload.message || "Profile updated.");
-          router.refresh();
         });
       }}
     >
@@ -127,6 +157,7 @@ export function ProfileSettingsForm({ currentName, currentAvatar, email }: Profi
           </div>
 
           {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
+          {info ? <p className="mt-4 text-sm text-[var(--muted)]">{info}</p> : null}
           {message ? <p className="mt-4 text-sm text-[var(--forest)]">{message}</p> : null}
 
           <button
