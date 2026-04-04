@@ -4,7 +4,9 @@ import { Bell } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type NotificationItem = {
   id: string;
@@ -65,7 +67,10 @@ export function NotificationsCenter() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState("");
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const hydratedRef = useRef(false);
   const announcedIdsRef = useRef<Set<string>>(new Set());
   const serviceWorkerRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
@@ -356,16 +361,61 @@ export function NotificationsCenter() {
       return;
     }
 
+    const updatePanelPosition = () => {
+      if (typeof window === "undefined" || !buttonRef.current) {
+        return;
+      }
+
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportPadding = 16;
+      const mobile = window.innerWidth < 640;
+
+      if (mobile) {
+        setPanelStyle({
+          top: Math.max(rect.bottom + 12, 88),
+          left: viewportPadding,
+          right: viewportPadding,
+          width: "auto",
+          maxHeight: `calc(100dvh - ${Math.max(rect.bottom + 28, 104)}px)`,
+        });
+        return;
+      }
+
+      const panelWidth = Math.min(368, window.innerWidth - viewportPadding * 2);
+      const left = Math.min(
+        Math.max(viewportPadding, rect.right - panelWidth),
+        window.innerWidth - panelWidth - viewportPadding,
+      );
+
+      setPanelStyle({
+        top: rect.bottom + 12,
+        left,
+        width: panelWidth,
+        maxHeight: `calc(100dvh - ${rect.bottom + 28}px)`,
+      });
+    };
+
+    updatePanelPosition();
+
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !panelRef.current?.contains(target)) {
         setOpen(false);
       }
     };
 
+    const handleViewportChange = () => {
+      updatePanelPosition();
+    };
+
     document.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
 
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
     };
   }, [open]);
 
@@ -382,6 +432,7 @@ export function NotificationsCenter() {
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-label="Open notifications"
@@ -397,8 +448,13 @@ export function NotificationsCenter() {
         ) : null}
       </button>
 
-      {open ? (
-        <div className="fixed inset-x-4 top-24 z-50 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[rgba(255,252,247,0.97)] shadow-[0_24px_60px_rgba(28,39,35,0.18)] backdrop-blur-xl sm:absolute sm:right-0 sm:top-full sm:mt-3 sm:w-[min(92vw,23rem)]">
+      {open && typeof document !== "undefined"
+        ? createPortal(
+          <div
+            ref={panelRef}
+            style={panelStyle}
+            className="fixed z-[200] overflow-hidden rounded-[24px] border border-[var(--border)] bg-[rgba(255,252,247,0.98)] shadow-[0_24px_60px_rgba(28,39,35,0.18)] backdrop-blur-xl"
+          >
           <div className="border-b border-[var(--border)] px-4 py-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -443,7 +499,7 @@ export function NotificationsCenter() {
             {pushError ? <p className="mt-2 text-xs text-red-700">{pushError}</p> : null}
           </div>
 
-          <div className="max-h-96 overflow-y-auto px-3 py-3">
+          <div className="overflow-y-auto px-3 py-3" style={{ maxHeight: "min(24rem, calc(100dvh - 8rem))" }}>
             {loading ? (
               <div className="rounded-[20px] border border-[var(--border)] bg-white/70 px-4 py-6 text-center text-sm text-[var(--muted)]">
                 Loading notifications...
@@ -485,8 +541,10 @@ export function NotificationsCenter() {
               </div>
             )}
           </div>
-        </div>
-      ) : null}
+          </div>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }
