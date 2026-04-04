@@ -22,6 +22,8 @@ model User {
   sessions      Session[]
   memberships   GroupMember[]
   media         Media[]
+  notifications Notification[] @relation("UserNotifications")
+  sentNotifications Notification[] @relation("UserNotificationActors")
 }
 
 model Account {
@@ -66,6 +68,7 @@ model Group {
   updatedAt  DateTime      @updatedAt
   media      Media[]
   members    GroupMember[]
+  notifications Notification[]
 }
 
 model GroupMember {
@@ -98,10 +101,34 @@ model Media {
   deletedAt            DateTime?
   uploader             User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
   group                Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  notifications        Notification[]
 
   @@index([groupId, createdAt])
   @@index([groupId, category, createdAt])
   @@index([uploaderId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  groupId   String?
+  actorId   String?
+  mediaId   String?
+  type      String
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("UserNotificationActors", fields: [actorId], references: [id], onDelete: SetNull)
+  group     Group?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  media     Media?    @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
+  @@index([groupId, createdAt])
 }
 
 model AppConfig {

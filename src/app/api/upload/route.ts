@@ -1,3 +1,4 @@
+import type { Media } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
@@ -5,6 +6,7 @@ import { ensureGroupFolders, uploadSmallFile } from "@/lib/drive";
 import { sanitizeFileName, sha256 } from "@/lib/file-utils";
 import { optimizeImageForUpload } from "@/lib/image-optimizer";
 import { MEDIA_CATEGORIES_CONFIG_KEY, parseMediaCategoriesValue, parseMediaCategory } from "@/lib/media-categories";
+import { buildUploadNotificationContent } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { assertAllowedMimeType, assertMagicBytes, validateImage, validateVideo } from "@/lib/validations";
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     const folders = await ensureGroupFolders(groupId);
-    const uploadedMedia = [];
+    const uploadedMedia: Media[] = [];
 
     for (const file of files) {
       assertAllowedMimeType(file.type);
@@ -110,6 +112,33 @@ export async function POST(request: Request) {
     }
 
     const fileLabel = uploadedMedia.length === 1 ? "file" : "files";
+
+    const recipients = await prisma.groupMember.findMany({
+      where: { groupId },
+      select: { userId: true },
+    });
+
+    if (recipients.length > 0) {
+      const notificationContent = buildUploadNotificationContent({
+        uploaderName: session.user.name || session.user.email || "A member",
+        category,
+        media: uploadedMedia,
+      });
+
+      await prisma.notification.createMany({
+        data: recipients.map((recipient) => ({
+          userId: recipient.userId,
+          groupId,
+          actorId: session.user.id,
+          mediaId: uploadedMedia[0]?.id,
+          type: "media.uploaded",
+          title: notificationContent.title,
+          message: notificationContent.message,
+          link: "/moments",
+        })),
+      });
+    }
+
     return NextResponse.json(
       {
         message: `${uploadedMedia.length} ${fileLabel} uploaded successfully.`,

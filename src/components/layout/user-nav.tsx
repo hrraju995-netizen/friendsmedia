@@ -8,6 +8,7 @@ import { LogOut } from "lucide-react";
 import { useTransition } from "react";
 
 import { Avatar } from "@/components/ui/avatar";
+import { NotificationsCenter } from "@/components/notifications/notifications-center";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -42,6 +43,8 @@ export function UserNav({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <NotificationsCenter />
+
         {navItems.map((item) => (
           <Link
             key={item.href}

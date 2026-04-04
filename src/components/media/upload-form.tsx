@@ -87,6 +87,7 @@ export function UploadForm({ group, categories }: UploadFormProps) {
                 ? `${responseMessage} ${prepared.optimizedImageCount} image${prepared.optimizedImageCount === 1 ? "" : "s"} optimized for mobile upload.`
                 : responseMessage,
             );
+            window.dispatchEvent(new Event("friends-media:refresh-notifications"));
             form.reset();
             setCategory("");
             setSelectedFiles([]);
