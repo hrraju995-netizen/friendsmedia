@@ -6,12 +6,31 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function HomePage() {
-  const session = await auth();
-  const hasUsers = (await prisma.user.count()) > 0;
-  const primaryHref = session ? "/gallery" : hasUsers ? "/login" : "/register";
-  const primaryLabel = session ? "Open dashboard" : hasUsers ? "Sign in" : "Create first admin";
-  const secondaryHref = session ? "/moments" : "/login";
-  const secondaryLabel = session ? "View moments" : "Member sign in";
+  let isSignedIn = false;
+  let hasUsers = true;
+  let serviceWarning = "";
+
+  try {
+    const session = await auth();
+    isSignedIn = Boolean(session?.user);
+  } catch (error) {
+    console.error("Home page auth check failed:", error);
+    serviceWarning = "We could not verify your current session right now. You can still continue to sign in manually.";
+  }
+
+  try {
+    hasUsers = (await prisma.user.count()) > 0;
+  } catch (error) {
+    console.error("Home page user count failed:", error);
+    hasUsers = true;
+    serviceWarning =
+      "The home page could not reach the production database just now. Please check Vercel environment variables, database access, and Prisma migrations.";
+  }
+
+  const primaryHref = isSignedIn ? "/gallery" : hasUsers ? "/login" : "/register";
+  const primaryLabel = isSignedIn ? "Open dashboard" : hasUsers ? "Sign in" : "Create first admin";
+  const secondaryHref = isSignedIn ? "/moments" : "/login";
+  const secondaryLabel = isSignedIn ? "View moments" : "Member sign in";
 
   return (
     <main className="page-shell">
@@ -42,6 +61,11 @@ export default async function HomePage() {
                       Friends Media is designed for close circles, not noisy public feeds. Keep every moment inside one private space
                       where your people can upload together, open images beautifully, and download the memories they want to keep.
                     </p>
+                    {serviceWarning ? (
+                      <div className="max-w-2xl rounded-[24px] border border-[rgba(177,85,42,0.18)] bg-[rgba(255,255,255,0.8)] px-5 py-4 text-sm leading-7 text-[var(--foreground)] shadow-sm">
+                        {serviceWarning}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -144,4 +168,3 @@ export default async function HomePage() {
     </main>
   );
 }
-
