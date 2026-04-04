@@ -4,7 +4,7 @@ import { Bell } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type NotificationItem = {
   id: string;
@@ -46,7 +46,7 @@ export function NotificationsCenter() {
   const hydratedRef = useRef(false);
   const announcedIdsRef = useRef<Set<string>>(new Set());
 
-  const fetchNotifications = useEffectEvent(async () => {
+  const fetchNotifications = useCallback(async () => {
     if (status !== "authenticated") {
       return;
     }
@@ -94,9 +94,9 @@ export function NotificationsCenter() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [permission, status]);
 
-  const markAllAsRead = useEffectEvent(async () => {
+  const markAllAsRead = useCallback(async () => {
     if (unreadCount === 0) {
       return;
     }
@@ -116,7 +116,7 @@ export function NotificationsCenter() {
       },
       body: JSON.stringify({ ids: unreadIds }),
     }).catch(() => undefined);
-  });
+  }, [items, unreadCount]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) {
