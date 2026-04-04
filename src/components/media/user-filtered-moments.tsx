@@ -8,15 +8,11 @@ import { cn } from "@/lib/utils";
 type UserFilteredMomentsProps = {
   items: GalleryItem[];
   showUploaderFilter?: boolean;
-  allItemsLabel?: string;
-  categoryItemsLabelPrefix?: string;
 };
 
 export function UserFilteredMoments({
   items,
   showUploaderFilter = true,
-  allItemsLabel = "Showing uploads from everyone",
-  categoryItemsLabelPrefix = "Showing",
 }: UserFilteredMomentsProps) {
   const [selectedUploaderId, setSelectedUploaderId] = useState<"all" | string>("all");
   const [selectedCategory, setSelectedCategory] = useState<"all" | string>("all");
@@ -49,10 +45,9 @@ export function UserFilteredMoments({
     showUploaderFilter && selectedUploaderId !== "all"
       ? filteredByCategory.filter((item) => item.uploaderId === selectedUploaderId)
       : filteredByCategory;
-  const selectedUploader = uploaders.find((uploader) => uploader.id === selectedUploaderId) ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="space-y-3">
         <div className="flex flex-wrap gap-3">
           <button
@@ -119,14 +114,7 @@ export function UserFilteredMoments({
         ) : null}
       </div>
 
-      <div className="flex items-center justify-between gap-4 rounded-[24px] border border-[var(--border)] bg-white/55 px-5 py-4 text-sm text-[var(--muted)]">
-        <p>
-          {selectedUploader && showUploaderFilter
-            ? `${selectedUploader.name}'s ${selectedCategory === "all" ? "uploads" : selectedCategory.toLowerCase()}`
-            : selectedCategory === "all"
-              ? allItemsLabel
-              : `${categoryItemsLabelPrefix} ${selectedCategory.toLowerCase()} uploads`}
-        </p>
+      <div className="flex items-center justify-end gap-4 rounded-[20px] border border-[var(--border)] bg-white/55 px-4 py-3 text-sm text-[var(--muted)] sm:rounded-[24px] sm:px-5 sm:py-4">
         <p className="font-medium text-[var(--foreground)]">
           {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
         </p>

@@ -28,8 +28,8 @@ export default async function MomentsPage() {
     : [];
 
   return (
-    <main className="page-shell px-6 py-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8">
+    <main className="page-shell px-4 py-5 sm:px-6 sm:py-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 sm:gap-8">
         <div className="animate-fade-in-up">
           <UserNav
             userName={user.name || user.email || "Friends Media Member"}
@@ -38,18 +38,15 @@ export default async function MomentsPage() {
           />
         </div>
 
-        <section className="glass-card animate-fade-in-up delay-100 rounded-[32px] p-8 sm:p-10 shadow-xl relative overflow-hidden">
+        <section className="glass-card animate-fade-in-up delay-100 relative overflow-hidden rounded-[28px] p-4 shadow-xl sm:rounded-[32px] sm:p-8 md:p-10">
           <div className="absolute top-0 right-1/4 w-96 h-96 bg-[var(--gold)] opacity-5 blur-[100px] pointer-events-none" />
           
           <div className="max-w-3xl relative z-10">
             <p className="font-mono text-xs uppercase tracking-[0.32em] text-[var(--muted)]">Moments</p>
-            <h1 className="mt-3 font-serif text-[2.5rem] leading-tight font-semibold text-gradient-vibrant">Moments from everyone</h1>
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-              Browse every photo and video shared by the whole circle in one clean page. Open any card to view it large and download it.
-            </p>
+            <h1 className="mt-3 font-serif text-3xl leading-tight font-semibold text-gradient-vibrant sm:text-[2.5rem]">Moments</h1>
           </div>
 
-          <div className="mt-10 relative z-10 animate-fade-in-up delay-200">
+          <div className="mt-6 relative z-10 animate-fade-in-up delay-200 sm:mt-10">
             {media.length === 0 ? (
               <div className="rounded-[24px] border border-[var(--border)] bg-white/70 backdrop-blur-md p-8 text-center text-sm text-[var(--muted)] shadow-sm">
                 Nothing uploaded yet. Use the upload page after the main admin connects Google Drive.

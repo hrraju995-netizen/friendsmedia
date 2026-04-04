@@ -22,7 +22,7 @@ export function ProfileSettingsForm({ currentName, currentAvatar, email }: Profi
 
   return (
     <form
-      className="glass-card rounded-[32px] border p-8"
+      className="glass-card rounded-[28px] border p-4 sm:rounded-[32px] sm:p-8"
       onSubmit={(event) => {
         event.preventDefault();
         setError("");
@@ -76,24 +76,21 @@ export function ProfileSettingsForm({ currentName, currentAvatar, email }: Profi
         });
       }}
     >
-      <div className="grid gap-8 lg:grid-cols-[0.86fr_1.14fr]">
-        <div className="rounded-[28px] border border-[var(--border)] bg-white/70 p-6">
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[0.86fr_1.14fr]">
+        <div className="rounded-[24px] border border-[var(--border)] bg-white/70 p-4 sm:rounded-[28px] sm:p-6">
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-[var(--muted)]">Preview</p>
-          <div className="mt-5 flex flex-col items-center text-center">
-            <Avatar name={currentName} src={preview} className="h-28 w-28 text-2xl" textClassName="text-2xl" />
-            <h2 className="mt-4 font-serif text-3xl font-semibold">{currentName}</h2>
+          <div className="mt-4 flex flex-col items-center text-center sm:mt-5">
+            <Avatar name={currentName} src={preview} className="h-24 w-24 text-xl sm:h-28 sm:w-28 sm:text-2xl" textClassName="text-xl sm:text-2xl" />
+            <h2 className="mt-4 font-serif text-2xl font-semibold sm:text-3xl">{currentName}</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">{email}</p>
           </div>
         </div>
 
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-[var(--muted)]">Profile Settings</p>
-          <h1 className="mt-3 font-serif text-4xl font-semibold">Make your profile feel personal</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-            Update your display name and add a profile picture. Your avatar appears on the shared moments gallery.
-          </p>
+          <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight sm:text-4xl">Make your profile feel personal</h1>
 
-          <div className="mt-8 space-y-5">
+          <div className="mt-6 space-y-4 sm:mt-8 sm:space-y-5">
             <label className="block space-y-2">
               <span className="text-sm font-medium">Display name</span>
               <input
@@ -109,28 +106,36 @@ export function ProfileSettingsForm({ currentName, currentAvatar, email }: Profi
 
             <label className="block space-y-2">
               <span className="text-sm font-medium">Profile photo</span>
-              <input
-                name="image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="w-full rounded-2xl border border-dashed border-[var(--border)] bg-white/70 px-4 py-3 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-[var(--forest)] file:px-4 file:py-2 file:text-white hover:border-[var(--forest)]"
-                onChange={(event) => {
-                  const file = event.currentTarget.files?.[0];
+              <label className="block cursor-pointer rounded-2xl border border-dashed border-[var(--border)] bg-white/70 p-4 transition hover:border-[var(--forest)]">
+                <input
+                  name="image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
 
-                  if (!file) {
-                    setPreview(currentAvatar);
-                    return;
-                  }
+                    if (!file) {
+                      setPreview(currentAvatar);
+                      return;
+                    }
 
-                  setPreview(URL.createObjectURL(file));
-                }}
-              />
+                    setPreview(URL.createObjectURL(file));
+                  }}
+                />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-medium text-[var(--foreground)]">Choose profile photo</p>
+                    <p className="truncate text-sm text-[var(--muted)]">{preview ? "Preview updated" : "JPG, PNG, or WebP"}</p>
+                  </div>
+                  <span className="inline-flex w-fit rounded-full bg-[var(--forest)] px-4 py-2 text-sm font-medium text-white">Browse</span>
+                </div>
+              </label>
             </label>
 
-            <div className="grid gap-4 rounded-[28px] border border-[var(--border)] bg-white/70 p-5 md:grid-cols-2">
+            <div className="grid gap-4 rounded-[24px] border border-[var(--border)] bg-white/70 p-4 md:grid-cols-2 sm:rounded-[28px] sm:p-5">
               <div className="md:col-span-2">
                 <p className="text-sm font-medium">Change password</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">Leave these blank if you do not want to update the password right now.</p>
               </div>
 
               <label className="block space-y-2">
@@ -163,7 +168,7 @@ export function ProfileSettingsForm({ currentName, currentAvatar, email }: Profi
           <button
             type="submit"
             disabled={pending}
-            className="mt-6 rounded-full bg-[var(--forest)] px-6 py-3 font-medium text-white transition hover:opacity-92 disabled:opacity-70"
+            className="mt-6 w-full rounded-full bg-[var(--forest)] px-6 py-3 font-medium text-white transition hover:opacity-92 disabled:opacity-70 sm:w-auto"
           >
             {pending ? "Saving..." : "Save profile"}
           </button>

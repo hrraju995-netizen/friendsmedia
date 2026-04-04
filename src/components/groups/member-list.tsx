@@ -28,19 +28,19 @@ export function MemberList({ members }: { members: MemberItem[] }) {
       {members.map((member) => (
         <div
           key={member.id}
-          className="rounded-[28px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,250,241,0.68))] p-5 shadow-[0_20px_40px_rgba(45,31,18,0.08)]"
+          className="rounded-[24px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,250,241,0.68))] p-4 shadow-[0_20px_40px_rgba(45,31,18,0.08)] sm:rounded-[28px] sm:p-5"
         >
-          <div className="flex items-center gap-4">
-            <Avatar name={member.name} src={member.avatar} className="h-14 w-14" />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Avatar name={member.name} src={member.avatar} className="h-12 w-12 sm:h-14 sm:w-14" />
             <div className="min-w-0">
-              <h4 className="truncate text-lg font-semibold">{member.name}</h4>
+              <h4 className="truncate text-base font-semibold sm:text-lg">{member.name}</h4>
               <p className="truncate text-sm text-[var(--muted)]">{member.email}</p>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--muted)] sm:mt-4">
             <span className="rounded-full border border-[var(--border)] px-3 py-1">{member.role === "admin" ? "Admin" : "Member"}</span>
-            <span className="rounded-full border border-[var(--border)] px-3 py-1">Added {member.createdDate}</span>
+            <span className="rounded-full border border-[var(--border)] px-3 py-1">{member.createdDate}</span>
           </div>
 
           {member.canDelete ? (
@@ -66,7 +66,7 @@ export function MemberList({ members }: { members: MemberItem[] }) {
                   router.refresh();
                 })
               }
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-60 sm:w-auto"
             >
               <Trash2 className="h-4 w-4" />
               {pending && pendingId === member.userId ? "Deleting..." : "Delete user"}

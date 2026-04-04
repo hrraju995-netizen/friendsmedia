@@ -73,7 +73,7 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
 
   return (
     <>
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
         {items.map((item) => {
           const mediaUrl = `/api/media/${item.id}/stream`;
 
@@ -82,7 +82,7 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
               key={item.id}
               type="button"
               onClick={() => setActiveId(item.id)}
-              className="group relative overflow-hidden rounded-[28px] border border-[var(--border)] bg-[#f5efe1] text-left shadow-[0_24px_50px_rgba(34,25,16,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(34,25,16,0.16)]"
+              className="group relative overflow-hidden rounded-[22px] border border-[var(--border)] bg-[#f5efe1] text-left shadow-[0_18px_36px_rgba(34,25,16,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(34,25,16,0.16)] sm:rounded-[28px]"
             >
               <div className="relative aspect-[4/5] overflow-hidden bg-[#d8c3a2]">
                 {item.mediaType === "image" ? (
@@ -106,22 +106,21 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
                     </div>
                   </>
                 )}
-                <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(10,10,10,0.76))] px-4 pb-4 pt-12">
-                  <div className="mb-3">
-                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/88">
+                <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(10,10,10,0.76))] px-3 pb-3 pt-10 sm:px-4 sm:pb-4 sm:pt-12">
+                  <div className="mb-2 sm:mb-3">
+                    <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/88 sm:px-3 sm:text-xs">
                       {getMediaCategoryLabel(item.category)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-white">
+                  <div className="flex items-center gap-2.5 text-white sm:gap-3">
                     <Avatar
                       name={item.uploaderName}
                       src={item.uploaderAvatar}
-                      className="h-11 w-11 border-white/35 bg-white/18 text-white"
+                      className="h-9 w-9 border-white/35 bg-white/18 text-white sm:h-11 sm:w-11"
                       textClassName="text-white"
                     />
                     <div>
-                      <p className="text-sm text-white/70">Uploaded by</p>
-                      <p className="font-medium">{item.uploaderName}</p>
+                      <p className="text-xs font-medium sm:text-sm">{item.uploaderName}</p>
                     </div>
                   </div>
                 </div>
