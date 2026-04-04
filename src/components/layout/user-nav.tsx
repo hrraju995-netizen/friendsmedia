@@ -32,7 +32,7 @@ export function UserNav({
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className="glass-card flex flex-col gap-4 overflow-hidden rounded-[32px] border px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between">
+    <div className="glass-card flex flex-col gap-4 overflow-visible rounded-[32px] border px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between">
       <div className="flex min-w-0 items-center gap-4">
         <Avatar name={userName} src={userImage} />
         <div className="min-w-0">

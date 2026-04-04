@@ -398,7 +398,7 @@ export function NotificationsCenter() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-30 mt-3 w-[min(92vw,23rem)] overflow-hidden rounded-[24px] border border-[var(--border)] bg-[rgba(255,252,247,0.97)] shadow-[0_24px_60px_rgba(28,39,35,0.18)] backdrop-blur-xl">
+        <div className="fixed inset-x-4 top-24 z-50 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[rgba(255,252,247,0.97)] shadow-[0_24px_60px_rgba(28,39,35,0.18)] backdrop-blur-xl sm:absolute sm:right-0 sm:top-full sm:mt-3 sm:w-[min(92vw,23rem)]">
           <div className="border-b border-[var(--border)] px-4 py-3">
             <div className="flex items-start justify-between gap-3">
               <div>
