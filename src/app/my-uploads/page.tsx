@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/auth";
 import { SHARED_GROUP_SLUG } from "@/lib/community";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function MyUploadsPage() {
   const user = await requireAuth();
   const sharedMembership = user.memberships.find((membership) => membership.group.slug === SHARED_GROUP_SLUG) ?? user.memberships[0] ?? null;

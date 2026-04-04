@@ -5,18 +5,13 @@ import { Images, LockKeyhole, Smartphone } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  let isSignedIn = false;
+  const session = await auth();
+  const isSignedIn = Boolean(session?.user);
   let hasUsers = true;
   let serviceWarning = "";
-
-  try {
-    const session = await auth();
-    isSignedIn = Boolean(session?.user);
-  } catch (error) {
-    console.error("Home page auth check failed:", error);
-    serviceWarning = "We could not verify your current session right now. You can still continue to sign in manually.";
-  }
 
   try {
     hasUsers = (await prisma.user.count()) > 0;

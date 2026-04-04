@@ -11,6 +11,8 @@ import { SHARED_GROUP_SLUG, isSuperAdmin } from "@/lib/community";
 import { MEDIA_CATEGORIES_CONFIG_KEY, parseMediaCategoriesValue } from "@/lib/media-categories";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function GalleryPage() {
   const user = await requireAuth();
   const sharedMembership = user.memberships.find((membership) => membership.group.slug === SHARED_GROUP_SLUG) ?? user.memberships[0] ?? null;

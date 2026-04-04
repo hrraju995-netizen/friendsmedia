@@ -8,6 +8,8 @@ import { MEDIA_CATEGORIES_CONFIG_KEY, parseMediaCategoriesValue } from "@/lib/me
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function UploadPage() {
   const user = await requireAuth();
 

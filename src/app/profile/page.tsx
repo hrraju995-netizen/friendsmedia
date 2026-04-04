@@ -3,6 +3,8 @@ import { ProfileSettingsForm } from "@/components/profile/profile-settings-form"
 import { getAvatarSrc } from "@/lib/avatar";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProfilePage() {
   const user = await requireAuth();
   const displayName = user.name || user.email || "Friends Media Member";
