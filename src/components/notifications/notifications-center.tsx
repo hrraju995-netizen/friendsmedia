@@ -26,6 +26,11 @@ type NotificationsResponse = {
   unreadCount: number;
 };
 
+type PushConfigResponse = {
+  enabled: boolean;
+  publicKey: string;
+};
+
 function formatNotificationDate(value: string) {
   return new Date(value).toLocaleString([], {
     month: "short",
@@ -35,6 +40,19 @@ function formatNotificationDate(value: string) {
   });
 }
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const normalized = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(normalized);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let index = 0; index < rawData.length; index += 1) {
+    outputArray[index] = rawData.charCodeAt(index);
+  }
+
+  return outputArray;
+}
+
 export function NotificationsCenter() {
   const { status } = useSession();
   const [open, setOpen] = useState(false);
@@ -42,9 +60,17 @@ export function NotificationsCenter() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushConfigured, setPushConfigured] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState("");
   const rootRef = useRef<HTMLDivElement | null>(null);
   const hydratedRef = useRef(false);
   const announcedIdsRef = useRef<Set<string>>(new Set());
+  const serviceWorkerRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const pushEndpointRef = useRef<string | null>(null);
+  const publicKeyRef = useRef("");
 
   const fetchNotifications = useCallback(async () => {
     if (status !== "authenticated") {
@@ -118,6 +144,167 @@ export function NotificationsCenter() {
     }).catch(() => undefined);
   }, [items, unreadCount]);
 
+  const loadPushState = useCallback(async () => {
+    if (status !== "authenticated") {
+      return;
+    }
+
+    if (
+      typeof window === "undefined" ||
+      !("Notification" in window) ||
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window)
+    ) {
+      setPushSupported(false);
+      return;
+    }
+
+    setPushSupported(true);
+
+    try {
+      const [configResponse, registration] = await Promise.all([
+        fetch("/api/push", {
+          method: "GET",
+          cache: "no-store",
+        }),
+        navigator.serviceWorker.ready,
+      ]);
+
+      serviceWorkerRegistrationRef.current = registration;
+
+      if (!configResponse.ok) {
+        setPushConfigured(false);
+        return;
+      }
+
+      const config = (await configResponse.json()) as PushConfigResponse;
+      publicKeyRef.current = config.publicKey || "";
+      setPushConfigured(Boolean(config.enabled && config.publicKey));
+
+      const subscription = await registration.pushManager.getSubscription();
+      pushEndpointRef.current = subscription?.endpoint ?? null;
+      setPushEnabled(Boolean(subscription));
+
+      if (subscription && config.enabled && config.publicKey) {
+        await fetch("/api/push", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(subscription.toJSON()),
+        }).catch(() => undefined);
+      }
+    } catch {
+      setPushEnabled(false);
+    }
+  }, [status]);
+
+  const enablePushAlerts = useCallback(async () => {
+    if (!pushSupported) {
+      setPushError("This browser or device does not support push notifications.");
+      return;
+    }
+
+    setPushBusy(true);
+    setPushError("");
+
+    try {
+      let nextPermission: NotificationPermission = permission === "unsupported" ? "default" : permission;
+
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission !== "granted") {
+        nextPermission = await Notification.requestPermission();
+        setPermission(nextPermission);
+      }
+
+      if (nextPermission !== "granted") {
+        setPushError("Notification permission was not granted on this device.");
+        return;
+      }
+
+      const registration = serviceWorkerRegistrationRef.current ?? (await navigator.serviceWorker.ready);
+      serviceWorkerRegistrationRef.current = registration;
+
+      if (!publicKeyRef.current) {
+        const configResponse = await fetch("/api/push", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!configResponse.ok) {
+          throw new Error("Could not load push notification settings.");
+        }
+
+        const config = (await configResponse.json()) as PushConfigResponse;
+        publicKeyRef.current = config.publicKey || "";
+        setPushConfigured(Boolean(config.enabled && config.publicKey));
+      }
+
+      if (!publicKeyRef.current) {
+        throw new Error("Server push keys are not configured yet.");
+      }
+
+      const existingSubscription = await registration.pushManager.getSubscription();
+      const subscription =
+        existingSubscription ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKeyRef.current),
+        }));
+
+      const response = await fetch("/api/push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(subscription.toJSON()),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error || "Could not enable push alerts.");
+      }
+
+      pushEndpointRef.current = subscription.endpoint;
+      setPushEnabled(true);
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : "Could not enable phone alerts.");
+    } finally {
+      setPushBusy(false);
+    }
+  }, [permission, pushSupported]);
+
+  const disablePushAlerts = useCallback(async () => {
+    setPushBusy(true);
+    setPushError("");
+
+    try {
+      const registration = serviceWorkerRegistrationRef.current ?? (await navigator.serviceWorker.ready);
+      const subscription = await registration.pushManager.getSubscription();
+      const endpoint = subscription?.endpoint ?? pushEndpointRef.current;
+
+      if (subscription) {
+        await subscription.unsubscribe().catch(() => undefined);
+      }
+
+      if (endpoint) {
+        await fetch("/api/push", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ endpoint }),
+        }).catch(() => undefined);
+      }
+
+      pushEndpointRef.current = null;
+      setPushEnabled(false);
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : "Could not disable phone alerts.");
+    } finally {
+      setPushBusy(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) {
       return;
@@ -157,6 +344,12 @@ export function NotificationsCenter() {
       window.removeEventListener("friends-media:refresh-notifications", handleRefreshRequest);
     };
   }, [fetchNotifications, status]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      void loadPushState();
+    }
+  }, [loadPushState, status]);
 
   useEffect(() => {
     if (!open) {
@@ -206,23 +399,48 @@ export function NotificationsCenter() {
 
       {open ? (
         <div className="absolute right-0 z-30 mt-3 w-[min(92vw,23rem)] overflow-hidden rounded-[24px] border border-[var(--border)] bg-[rgba(255,252,247,0.97)] shadow-[0_24px_60px_rgba(28,39,35,0.18)] backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Notifications</p>
-              <p className="text-sm text-[var(--muted)]">New uploads appear here for everyone in the group.</p>
+          <div className="border-b border-[var(--border)] px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Notifications</p>
+                <p className="text-sm text-[var(--muted)]">New uploads appear here. Phone alerts use your browser or PWA default sound.</p>
+              </div>
+              {pushSupported ? (
+                pushEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => void disablePushAlerts()}
+                    disabled={pushBusy}
+                    className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:border-[var(--forest)] hover:text-[var(--forest)] disabled:opacity-60"
+                  >
+                    {pushBusy ? "Working..." : "Mute phone"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void enablePushAlerts()}
+                    disabled={pushBusy}
+                    className="rounded-full bg-[var(--forest)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-92 disabled:opacity-60"
+                  >
+                    {pushBusy ? "Working..." : "Enable phone alerts"}
+                  </button>
+                )
+              ) : null}
             </div>
-            {permission === "default" ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  const nextPermission = await Notification.requestPermission();
-                  setPermission(nextPermission);
-                }}
-                className="rounded-full bg-[var(--forest)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-92"
-              >
-                Enable alerts
-              </button>
-            ) : null}
+
+            {!pushSupported ? (
+              <p className="mt-2 text-xs text-[var(--muted)]">This browser does not support phone push notifications.</p>
+            ) : !pushConfigured ? (
+              <p className="mt-2 text-xs text-[var(--muted)]">Phone push is not configured on the server yet.</p>
+            ) : pushEnabled ? (
+              <p className="mt-2 text-xs text-[var(--forest)]">Phone alerts are active on this device.</p>
+            ) : permission === "denied" ? (
+              <p className="mt-2 text-xs text-red-700">Notification permission is blocked in this browser. Enable it from browser settings.</p>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--muted)]">Enable phone alerts to see upload notifications on your device screen.</p>
+            )}
+
+            {pushError ? <p className="mt-2 text-xs text-red-700">{pushError}</p> : null}
           </div>
 
           <div className="max-h-96 overflow-y-auto px-3 py-3">

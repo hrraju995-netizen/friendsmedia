@@ -24,6 +24,7 @@ model User {
   media         Media[]
   notifications Notification[] @relation("UserNotifications")
   sentNotifications Notification[] @relation("UserNotificationActors")
+  pushSubscriptions PushSubscription[]
 }
 
 model Account {
@@ -129,6 +130,21 @@ model Notification {
   @@index([userId, isRead, createdAt])
   @@index([userId, createdAt])
   @@index([groupId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastUsedAt DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model AppConfig {

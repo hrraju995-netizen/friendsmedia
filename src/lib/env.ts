@@ -12,6 +12,9 @@ const envSchema = z.object({
   GOOGLE_DRIVE_REDIRECT_URI: z.string().default(""),
   GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().default(""),
   GOOGLE_DRIVE_REFRESH_TOKEN: z.string().default(""),
+  WEB_PUSH_PUBLIC_KEY: z.string().default(""),
+  WEB_PUSH_PRIVATE_KEY: z.string().default(""),
+  WEB_PUSH_SUBJECT: z.string().default(""),
 });
 
 export const env = envSchema.parse({
@@ -26,6 +29,9 @@ export const env = envSchema.parse({
   GOOGLE_DRIVE_REDIRECT_URI: process.env.GOOGLE_DRIVE_REDIRECT_URI,
   GOOGLE_DRIVE_ROOT_FOLDER_ID: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID,
   GOOGLE_DRIVE_REFRESH_TOKEN: process.env.GOOGLE_DRIVE_REFRESH_TOKEN,
+  WEB_PUSH_PUBLIC_KEY: process.env.WEB_PUSH_PUBLIC_KEY,
+  WEB_PUSH_PRIVATE_KEY: process.env.WEB_PUSH_PRIVATE_KEY,
+  WEB_PUSH_SUBJECT: process.env.WEB_PUSH_SUBJECT,
 });
 
 export function isDriveConfigured() {
@@ -37,3 +43,6 @@ export function isDriveConfigured() {
   );
 }
 
+export function isWebPushConfigured() {
+  return Boolean(env.WEB_PUSH_PUBLIC_KEY && env.WEB_PUSH_PRIVATE_KEY && env.WEB_PUSH_SUBJECT);
+}

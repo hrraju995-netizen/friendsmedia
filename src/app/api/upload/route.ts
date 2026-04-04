@@ -10,6 +10,7 @@ import { buildUploadNotificationContent } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { assertAllowedMimeType, assertMagicBytes, validateImage, validateVideo } from "@/lib/validations";
+import { sendPushToUsers } from "@/lib/web-push";
 
 export const runtime = "nodejs";
 
@@ -124,10 +125,11 @@ export async function POST(request: Request) {
         category,
         media: uploadedMedia,
       });
+      const recipientIds = recipients.map((recipient) => recipient.userId);
 
       await prisma.notification.createMany({
-        data: recipients.map((recipient) => ({
-          userId: recipient.userId,
+        data: recipientIds.map((recipientId) => ({
+          userId: recipientId,
           groupId,
           actorId: session.user.id,
           mediaId: uploadedMedia[0]?.id,
@@ -136,6 +138,13 @@ export async function POST(request: Request) {
           message: notificationContent.message,
           link: "/moments",
         })),
+      });
+
+      await sendPushToUsers(recipientIds, {
+        title: notificationContent.title,
+        body: notificationContent.message,
+        url: "/moments",
+        tag: `upload-${uploadedMedia[0]?.id ?? "latest"}`,
       });
     }
 

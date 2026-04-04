@@ -1,4 +1,4 @@
-const CACHE_NAME = "friends-media-shell-v2";
+const CACHE_NAME = "friends-media-shell-v3";
 const OFFLINE_URL = "/offline.html";
 const APP_SHELL = [
   "/",
@@ -93,4 +93,48 @@ self.addEventListener("fetch", (event) => {
       }),
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  if (!event.data) {
+    return;
+  }
+
+  const payload = event.data.json();
+  const title = payload.title || "Friends Media";
+  const options = {
+    body: payload.body || "A new upload is ready.",
+    icon: payload.icon || "/icon-192.png",
+    badge: payload.badge || "/icon-192.png",
+    vibrate: Array.isArray(payload.vibrate) ? payload.vibrate : [140, 80, 140],
+    tag: payload.tag || "friends-media-notification",
+    renotify: true,
+    data: {
+      url: payload.url || "/moments",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const targetUrl = new URL(event.notification.data?.url || "/moments", self.location.origin).toString();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url === targetUrl && "focus" in client) {
+          return client.focus();
+        }
+      }
+
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+
+      return Promise.resolve();
+    }),
+  );
 });
