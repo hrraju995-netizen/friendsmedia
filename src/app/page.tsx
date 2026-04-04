@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Images, LockKeyhole, Smartphone } from "lucide-react";
 
 import { auth } from "@/auth";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,10 @@ export default async function HomePage() {
                    >
                      {secondaryLabel}
                    </Link>
+                </div>
+
+                <div className="max-w-md">
+                  <InstallAppButton theme="light" />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3 mt-4">

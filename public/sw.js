@@ -1,6 +1,21 @@
-const CACHE_NAME = "friends-media-shell-v1";
+const CACHE_NAME = "friends-media-shell-v2";
 const OFFLINE_URL = "/offline.html";
-const APP_SHELL = ["/", "/login", "/gallery", "/moments", "/my-uploads", "/upload", "/profile", OFFLINE_URL, "/manifest.webmanifest", "/icon.svg", "/apple-icon.svg"];
+const APP_SHELL = [
+  "/",
+  "/login",
+  "/gallery",
+  "/moments",
+  "/my-uploads",
+  "/upload",
+  "/profile",
+  OFFLINE_URL,
+  "/manifest.webmanifest",
+  "/icon.svg",
+  "/apple-icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

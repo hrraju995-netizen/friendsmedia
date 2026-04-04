@@ -133,29 +133,38 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
       {mounted && activeItem
         ? createPortal(
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(10,9,8,0.82)] p-4 backdrop-blur-md"
+              className="fixed inset-0 z-[100] bg-[rgba(10,9,8,0.88)] backdrop-blur-md"
               onClick={() => setActiveId(null)}
             >
               <div
-                className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[32px] border border-white/10 bg-[#11110f] text-white shadow-[0_32px_80px_rgba(0,0,0,0.45)]"
+                className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[#11110f] text-white shadow-[0_32px_80px_rgba(0,0,0,0.45)] sm:m-4 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-6xl sm:rounded-[32px] sm:border sm:border-white/10"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-                  <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveId(null)}
+                  className="absolute right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/14 bg-black/45 text-white shadow-lg transition hover:bg-black/60"
+                >
+                  <X className="h-5 w-5" />
+                  <span className="sr-only">Close viewer</span>
+                </button>
+
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-4 pr-16 sm:flex-nowrap sm:items-center sm:px-5">
+                  <div className="flex min-w-0 items-center gap-3">
                     <Avatar
                       name={activeItem.uploaderName}
                       src={activeItem.uploaderAvatar}
                       className="h-11 w-11 border-white/20 bg-white/10 text-white"
                       textClassName="text-white"
                     />
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs uppercase tracking-[0.26em] text-white/45">Shared Moment</p>
-                      <p className="text-sm font-medium text-white/88">{activeItem.uploaderName}</p>
+                      <p className="truncate text-sm font-medium text-white/88">{activeItem.uploaderName}</p>
                       <p className="mt-1 text-xs text-white/55">{getMediaCategoryLabel(activeItem.category)}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                     {activeItem.canDelete ? (
                       <button
                         type="button"
@@ -178,7 +187,7 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
                             router.refresh();
                           })
                         }
-                        className="inline-flex items-center gap-2 rounded-full border border-red-400/22 bg-red-500/12 px-4 py-2 text-sm font-medium text-red-100 transition hover:bg-red-500/18 disabled:opacity-60"
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-red-400/22 bg-red-500/12 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-500/18 disabled:opacity-60 sm:flex-none"
                       >
                         <Trash2 className="h-4 w-4" />
                         {pending ? "Deleting..." : "Delete"}
@@ -186,24 +195,17 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
                     ) : null}
                     <a
                       href={`/api/media/${activeItem.id}/download`}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/16"
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 py-2.5 text-sm font-medium transition hover:bg-white/16 sm:flex-none"
                     >
                       <Download className="h-4 w-4" />
                       Download
                     </a>
-                    <button
-                      type="button"
-                      onClick={() => setActiveId(null)}
-                      className="rounded-full border border-white/14 bg-white/10 p-2 transition hover:bg-white/16"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
                   </div>
                 </div>
 
-                {deleteError ? <p className="border-b border-white/10 px-5 py-3 text-sm text-red-300">{deleteError}</p> : null}
+                {deleteError ? <p className="border-b border-white/10 px-4 py-3 text-sm text-red-300 sm:px-5">{deleteError}</p> : null}
 
-                <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0b0b09] p-4 md:p-8">
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#0b0b09] p-3 pb-5 sm:p-8">
                   {activeItem.mediaType === "image" ? (
                     <Image
                       src={`/api/media/${activeItem.id}/stream`}
@@ -211,12 +213,12 @@ export function SharedMomentsGallery({ items }: SharedMomentsGalleryProps) {
                       width={1600}
                       height={1200}
                       unoptimized
-                      className="block h-auto max-h-full w-auto max-w-full rounded-[24px] object-contain"
+                      className="block h-auto max-h-[calc(100dvh-11rem)] w-auto max-w-full rounded-[20px] object-contain sm:max-h-full sm:rounded-[24px]"
                     />
                   ) : (
                     <video
                       src={`/api/media/${activeItem.id}/stream`}
-                      className="max-h-full w-full rounded-[24px] bg-black object-contain"
+                      className="max-h-[calc(100dvh-11rem)] w-full rounded-[20px] bg-black object-contain sm:max-h-full sm:rounded-[24px]"
                       controls
                       autoPlay
                     />
