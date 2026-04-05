@@ -19,7 +19,8 @@ export function PwaRegister() {
 
     const register = async () => {
       try {
-        await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        await registration.update().catch(() => undefined);
       } catch {
         // Silent fallback keeps the app working normally if service worker registration fails.
       }

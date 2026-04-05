@@ -71,6 +71,8 @@ export function NotificationsCenter() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState("");
+  const [pushTestBusy, setPushTestBusy] = useState(false);
+  const [pushTestMessage, setPushTestMessage] = useState("");
   const [liveAlerts, setLiveAlerts] = useState<LiveAlert[]>([]);
   const [soundReady, setSoundReady] = useState(false);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
@@ -430,6 +432,30 @@ export function NotificationsCenter() {
     }
   }, []);
 
+  const sendTestPhoneAlert = useCallback(async () => {
+    setPushTestBusy(true);
+    setPushTestMessage("");
+    setPushError("");
+
+    try {
+      const response = await fetch("/api/push/test", {
+        method: "POST",
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not send a test phone alert.");
+      }
+
+      setPushTestMessage("Test phone alert sent. If no sound comes, check the phone's site notification sound settings.");
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : "Could not send a test phone alert.");
+    } finally {
+      setPushTestBusy(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) {
       return;
@@ -618,27 +644,42 @@ export function NotificationsCenter() {
                 <p className="mt-2 text-xs text-[var(--muted)]">
                   {soundReady ? "In-app alert sound is ready on this device." : "Tap anywhere once in the app to enable in-app alert sound."}
                 </p>
+                <p className="mt-2 text-xs text-[var(--muted)]">
+                  Phone push sound is controlled by the device browser or installed PWA notification settings.
+                </p>
               </div>
               {pushSupported ? (
-                pushEnabled ? (
-                  <button
-                    type="button"
-                    onClick={() => void disablePushAlerts()}
-                    disabled={pushBusy}
-                    className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:border-[var(--forest)] hover:text-[var(--forest)] disabled:opacity-60"
-                  >
-                    {pushBusy ? "Working..." : "Mute phone"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => void enablePushAlerts()}
-                    disabled={pushBusy}
-                    className="rounded-full bg-[var(--forest)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-92 disabled:opacity-60"
-                  >
-                    {pushBusy ? "Working..." : "Enable phone alerts"}
-                  </button>
-                )
+                <div className="flex flex-wrap justify-end gap-2">
+                  {pushEnabled ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void sendTestPhoneAlert()}
+                        disabled={pushBusy || pushTestBusy}
+                        className="rounded-full border border-[var(--forest)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white disabled:opacity-60"
+                      >
+                        {pushTestBusy ? "Sending..." : "Send test phone alert"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void disablePushAlerts()}
+                        disabled={pushBusy || pushTestBusy}
+                        className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:border-[var(--forest)] hover:text-[var(--forest)] disabled:opacity-60"
+                      >
+                        {pushBusy ? "Working..." : "Mute phone"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void enablePushAlerts()}
+                      disabled={pushBusy || pushTestBusy}
+                      className="rounded-full bg-[var(--forest)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-92 disabled:opacity-60"
+                    >
+                      {pushBusy ? "Working..." : "Enable phone alerts"}
+                    </button>
+                  )}
+                </div>
               ) : null}
             </div>
 
@@ -655,6 +696,7 @@ export function NotificationsCenter() {
             )}
 
             {pushError ? <p className="mt-2 text-xs text-red-700">{pushError}</p> : null}
+            {pushTestMessage ? <p className="mt-2 text-xs text-[var(--forest)]">{pushTestMessage}</p> : null}
           </div>
 
           <div className="overflow-y-auto px-3 py-3" style={{ maxHeight: "min(24rem, calc(100dvh - 8rem))" }}>

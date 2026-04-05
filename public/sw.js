@@ -109,6 +109,9 @@ self.addEventListener("push", (event) => {
     vibrate: Array.isArray(payload.vibrate) ? payload.vibrate : [140, 80, 140],
     tag: payload.tag || "friends-media-notification",
     renotify: true,
+    silent: false,
+    requireInteraction: true,
+    timestamp: Date.now(),
     data: {
       url: payload.url || "/moments",
     },
