@@ -33,6 +33,10 @@ type PushConfigResponse = {
   publicKey: string;
 };
 
+type LiveAlert = NotificationItem;
+
+type AudioContextWindow = Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext };
+
 function formatNotificationDate(value: string) {
   return new Date(value).toLocaleString([], {
     month: "short",
@@ -67,6 +71,7 @@ export function NotificationsCenter() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState("");
+  const [liveAlerts, setLiveAlerts] = useState<LiveAlert[]>([]);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -76,6 +81,92 @@ export function NotificationsCenter() {
   const serviceWorkerRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const pushEndpointRef = useRef<string | null>(null);
   const publicKeyRef = useRef("");
+  const alertTimeoutsRef = useRef<Map<string, number>>(new Map());
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const removeLiveAlert = useCallback((id: string) => {
+    const timeoutId = alertTimeoutsRef.current.get(id);
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+      alertTimeoutsRef.current.delete(id);
+    }
+
+    setLiveAlerts((current) => current.filter((item) => item.id !== id));
+  }, []);
+
+  const showLiveAlerts = useCallback(
+    (notifications: NotificationItem[]) => {
+      if (typeof window === "undefined" || notifications.length === 0) {
+        return;
+      }
+
+      const nextAlerts = [...notifications].reverse();
+
+      setLiveAlerts((current) => {
+        const merged = [...nextAlerts, ...current.filter((item) => !nextAlerts.some((next) => next.id === item.id))];
+        return merged.slice(0, 4);
+      });
+
+      nextAlerts.forEach((notification) => {
+        const existingTimeout = alertTimeoutsRef.current.get(notification.id);
+        if (existingTimeout) {
+          window.clearTimeout(existingTimeout);
+        }
+
+        const timeoutId = window.setTimeout(() => {
+          alertTimeoutsRef.current.delete(notification.id);
+          setLiveAlerts((current) => current.filter((item) => item.id !== notification.id));
+        }, 5000);
+
+        alertTimeoutsRef.current.set(notification.id, timeoutId);
+      });
+    },
+    [],
+  );
+
+  const playNotificationSound = useCallback(async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const audioWindow = window as AudioContextWindow;
+    const AudioContextConstructor = audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
+
+    if (!AudioContextConstructor) {
+      return;
+    }
+
+    try {
+      const context = audioContextRef.current ?? new AudioContextConstructor();
+      audioContextRef.current = context;
+
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+
+      const scheduleTone = (startAt: number, frequency: number, duration: number) => {
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, startAt);
+        gainNode.gain.setValueAtTime(0.0001, startAt);
+        gainNode.gain.exponentialRampToValueAtTime(0.12, startAt + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        oscillator.start(startAt);
+        oscillator.stop(startAt + duration + 0.02);
+      };
+
+      const startAt = context.currentTime + 0.02;
+      scheduleTone(startAt, 880, 0.14);
+      scheduleTone(startAt + 0.18, 660, 0.18);
+    } catch {
+      return;
+    }
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (status !== "authenticated") {
@@ -109,6 +200,11 @@ export function NotificationsCenter() {
         announcedIdsRef.current.add(notification.id);
       });
 
+      if (newItems.length > 0 && typeof document !== "undefined" && document.visibilityState === "visible") {
+        showLiveAlerts(newItems);
+        void playNotificationSound();
+      }
+
       if (
         newItems.length > 0 &&
         permission === "granted" &&
@@ -125,7 +221,7 @@ export function NotificationsCenter() {
     } finally {
       setLoading(false);
     }
-  }, [permission, status]);
+  }, [permission, playNotificationSound, showLiveAlerts, status]);
 
   const markAllAsRead = useCallback(async () => {
     if (unreadCount === 0) {
@@ -328,7 +424,7 @@ export function NotificationsCenter() {
 
     const interval = window.setInterval(() => {
       void fetchNotifications();
-    }, 5000);
+    }, 3000);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -424,6 +520,21 @@ export function NotificationsCenter() {
       void markAllAsRead();
     }
   }, [markAllAsRead, open]);
+
+  useEffect(() => {
+    const alertTimeouts = alertTimeoutsRef.current;
+
+    return () => {
+      alertTimeouts.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      alertTimeouts.clear();
+
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        void audioContextRef.current.close().catch(() => undefined);
+      }
+    };
+  }, []);
 
   if (status !== "authenticated") {
     return null;
@@ -541,6 +652,36 @@ export function NotificationsCenter() {
               </div>
             )}
           </div>
+          </div>,
+          document.body,
+        )
+        : null}
+
+      {liveAlerts.length > 0 && typeof document !== "undefined"
+        ? createPortal(
+          <div className="pointer-events-none fixed top-20 right-4 z-[220] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 sm:top-24">
+            {liveAlerts.map((item) => (
+              <div
+                key={item.id}
+                className="pointer-events-auto rounded-[24px] border border-[rgba(33,77,66,0.18)] bg-[rgba(255,252,247,0.98)] px-4 py-3 shadow-[0_18px_40px_rgba(28,39,35,0.18)] backdrop-blur-xl"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{item.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{item.message}</p>
+                    <p className="mt-2 text-xs text-[var(--muted)]">{formatNotificationDate(item.createdAt)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeLiveAlert(item.id)}
+                    className="rounded-full border border-[var(--border)] px-2 py-1 text-[11px] font-medium text-[var(--muted)] transition hover:border-[var(--forest)] hover:text-[var(--forest)]"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>,
           document.body,
         )
