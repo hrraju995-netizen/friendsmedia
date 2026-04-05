@@ -72,6 +72,7 @@ export function NotificationsCenter() {
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState("");
   const [liveAlerts, setLiveAlerts] = useState<LiveAlert[]>([]);
+  const [soundReady, setSoundReady] = useState(false);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -83,6 +84,37 @@ export function NotificationsCenter() {
   const publicKeyRef = useRef("");
   const alertTimeoutsRef = useRef<Map<string, number>>(new Map());
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  const ensureAudioContextReady = useCallback(async () => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    const audioWindow = window as AudioContextWindow;
+    const AudioContextConstructor = audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
+
+    if (!AudioContextConstructor) {
+      return null;
+    }
+
+    try {
+      const context = audioContextRef.current ?? new AudioContextConstructor();
+      audioContextRef.current = context;
+
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+
+      if (context.state !== "running") {
+        return null;
+      }
+
+      setSoundReady(true);
+      return context;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const removeLiveAlert = useCallback((id: string) => {
     const timeoutId = alertTimeoutsRef.current.get(id);
@@ -125,33 +157,21 @@ export function NotificationsCenter() {
   );
 
   const playNotificationSound = useCallback(async () => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    const context = await ensureAudioContextReady();
 
-    const audioWindow = window as AudioContextWindow;
-    const AudioContextConstructor = audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
-
-    if (!AudioContextConstructor) {
+    if (!context) {
       return;
     }
 
     try {
-      const context = audioContextRef.current ?? new AudioContextConstructor();
-      audioContextRef.current = context;
-
-      if (context.state === "suspended") {
-        await context.resume();
-      }
-
       const scheduleTone = (startAt: number, frequency: number, duration: number) => {
         const oscillator = context.createOscillator();
         const gainNode = context.createGain();
 
-        oscillator.type = "sine";
+        oscillator.type = "triangle";
         oscillator.frequency.setValueAtTime(frequency, startAt);
         gainNode.gain.setValueAtTime(0.0001, startAt);
-        gainNode.gain.exponentialRampToValueAtTime(0.12, startAt + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.16, startAt + 0.02);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
 
         oscillator.connect(gainNode);
@@ -161,12 +181,13 @@ export function NotificationsCenter() {
       };
 
       const startAt = context.currentTime + 0.02;
-      scheduleTone(startAt, 880, 0.14);
-      scheduleTone(startAt + 0.18, 660, 0.18);
+      scheduleTone(startAt, 1046, 0.12);
+      scheduleTone(startAt + 0.16, 1318, 0.16);
+      scheduleTone(startAt + 0.38, 988, 0.2);
     } catch {
       return;
     }
-  }, []);
+  }, [ensureAudioContextReady]);
 
   const fetchNotifications = useCallback(async () => {
     if (status !== "authenticated") {
@@ -200,9 +221,12 @@ export function NotificationsCenter() {
         announcedIdsRef.current.add(notification.id);
       });
 
+      if (newItems.length > 0) {
+        void playNotificationSound();
+      }
+
       if (newItems.length > 0 && typeof document !== "undefined" && document.visibilityState === "visible") {
         showLiveAlerts(newItems);
-        void playNotificationSound();
       }
 
       if (
@@ -415,6 +439,26 @@ export function NotificationsCenter() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const unlockAudio = () => {
+      void ensureAudioContextReady();
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, [ensureAudioContextReady]);
+
+  useEffect(() => {
     if (status !== "authenticated") {
       setLoading(false);
       return;
@@ -571,6 +615,9 @@ export function NotificationsCenter() {
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Notifications</p>
                 <p className="text-sm text-[var(--muted)]">New uploads appear here. Phone alerts use your browser or PWA default sound.</p>
+                <p className="mt-2 text-xs text-[var(--muted)]">
+                  {soundReady ? "In-app alert sound is ready on this device." : "Tap anywhere once in the app to enable in-app alert sound."}
+                </p>
               </div>
               {pushSupported ? (
                 pushEnabled ? (
